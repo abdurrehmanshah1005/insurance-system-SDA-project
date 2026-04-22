@@ -1,0 +1,71 @@
+Build a C++ console app named Automobile Insurance Management System with file-based storage only (no DBMS). Keep scope focused so it can be completed quickly but still satisfy instructor requirements.
+
+Must-have scope:
+1. Language: C++17.
+2. Architecture: 3 layers.
+- UI layer: menu only.
+- Business layer: validation and workflows.
+- Data layer: file repositories.
+3. Core entities:
+- Customer, Vehicle, InsurancePolicy, Claim, InspectionReport, Workshop, Staff.
+4. Core roles:
+- Salesman, Surveyor, Manager.
+5. Core workflows:
+- Salesman: register customer, add vehicle, issue policy, file claim.
+- Surveyor: submit inspection report.
+- Manager: review pending claims, approve/reject claims, assign registered workshop, view required reports.
+
+Strict rules:
+1. Claim only if policy ACTIVE.
+2. Manager approval/rejection only after inspection report exists.
+3. Workshop assignment only after approval.
+4. Assigned workshop must be REGISTERED.
+5. UI must never read/write files directly.
+
+Minimal folder structure:
+- src/domain
+- src/services
+- src/repositories
+- src/ui
+- data
+- docs
+- tests
+- CMakeLists.txt
+- README.md
+
+Persistence:
+1. One file per entity in data folder.
+2. Use CSV (with basic escaping) or simple custom text format.
+3. Load on startup, save safely on updates.
+
+Required menus:
+1. Main menu: Login as Salesman/Surveyor/Manager, Exit.
+2. Salesman menu: Register Customer, Add Vehicle, Issue Policy, File Claim.
+3. Surveyor menu: View Assigned Claims, Submit Inspection Report.
+4. Manager menu: View Pending Claims, Approve, Reject, Assign Workshop, Reports.
+
+Required reports:
+1. New customers by month.
+2. Pending claims.
+3. Inspection report list.
+4. Customer claim history.
+
+Engineering expectations (lightweight):
+1. Basic input validation.
+2. Enums for statuses/roles.
+3. Clear error messages.
+4. At least 5 unit tests for key business rules.
+
+Deliverables:
+1. Complete compilable source code.
+2. CMake build setup.
+3. Sample data files.
+4. README with build/run steps and assumptions.
+5. Mermaid class diagram.
+6. Mermaid use case diagram.
+7. Basic code quality check report using cppcheck or CCCC summary.
+
+Output format:
+1. Show folder tree.
+2. Provide all files.
+3. End with exact build and run commands for Windows (g++ and CMake).

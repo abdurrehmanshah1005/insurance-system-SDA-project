@@ -1,0 +1,124 @@
+classDiagram
+    %% =========================
+    %% CORE DOMAIN CLASSES
+    %% =========================
+    class Customer {
+        -int customerId
+        -string name
+        -string contact
+        -string address
+    }
+
+    class Vehicle {
+        -int vehicleId
+        -string registrationNo
+        -string make
+        -string model
+        -int year
+        -int customerId
+    }
+
+    class InsurancePolicy {
+        -int policyId
+        -int customerId
+        -int vehicleId
+        -string startDate
+        -string endDate
+        -double premium
+        -string status
+    }
+
+    class Claim {
+        -int claimId
+        -int policyId
+        -int vehicleId
+        -string accidentDate
+        -string claimDate
+        -string status
+        -int surveyorId
+        -int workshopId
+        -string damageDescription
+    }
+
+    class InspectionReport {
+        -int inspectionId
+        -int claimId
+        -int surveyorId
+        -string inspectionDate
+        -double estimatedCost
+        -string recommendation
+    }
+
+    class Workshop {
+        -int workshopId
+        -string name
+        -string address
+        -string contact
+        -string status
+    }
+
+    class Staff {
+        -int staffId
+        -string name
+        -string role
+    }
+
+    %% =========================
+    %% BUSINESS LAYER (SERVICES)
+    %% =========================
+    class CustomerService {
+        +registerCustomer() Customer
+        +addVehicle() Vehicle
+        +createPolicy() InsurancePolicy
+    }
+
+    class ClaimService {
+        +createClaim() Claim
+        +assignSurveyor() bool
+        +addInspectionReport() InspectionReport
+        +approveClaim() bool
+        +rejectClaim() bool
+        +assignWorkshop() bool
+    }
+
+    class ReportService {
+        +getNewCustomersByMonth() vector~Customer~
+        +getPendingClaims() vector~Claim~
+        +getCustomerClaimHistory() vector~Claim~
+    }
+
+    %% =========================
+    %% DATA ACCESS LAYER (FILES)
+    %% =========================
+    class FileRepository {
+        <<interface>>
+        +loadAllRecords(string filename)
+        +saveAllRecords(string filename, data)
+        +appendRecord(string filename, record)
+    }
+
+    %% =========================
+    %% PRESENTATION LAYER
+    %% =========================
+    class InsuranceApp {
+        +run() void
+    }
+
+    %% =========================
+    %% RELATIONSHIPS
+    %% =========================
+    Customer "1" --> "0..*" Vehicle : owns
+    Customer "1" --> "0..*" InsurancePolicy : holds
+    InsurancePolicy "1" --> "0..*" Claim : has
+    Claim "1" --> "0..1" InspectionReport : includes
+    Workshop "1" --> "0..*" Claim : repairs
+    Staff "1" --> "0..*" InspectionReport : creates
+    Staff "1" --> "0..*" Claim : reviews
+
+    InsuranceApp ..> CustomerService : uses
+    InsuranceApp ..> ClaimService : uses
+    InsuranceApp ..> ReportService : uses
+
+    CustomerService ..> FileRepository : reads/writes
+    ClaimService ..> FileRepository : reads/writes
+    ReportService ..> FileRepository : reads

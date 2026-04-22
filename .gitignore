@@ -1,0 +1,22 @@
+# Build artifacts
+*.exe
+*.o
+*.obj
+*.dll
+
+# IDEs
+.vscode/
+.idea/
+
+# CMake
+build/
+CMakeCache.txt
+CMakeFiles/
+Makefile
+cmake_install.cmake
+
+# Specific project executables
+AutoInsuranceGUI/insurance_gui.exe
+AutoInsuranceSystem/insurance_app.exe
+AutoInsuranceSystem/build/
+AutoInsuranceSystem/tests/*.exe

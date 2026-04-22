@@ -1,0 +1,19 @@
+Consider an information system for an automobile insurance company. The system stores data about all the important entities and transactions such as customers, vehicles, insurance details, claims, inspections and staff (salesmen and surveyors).
+
+The company has many registered workshops. A damaged vehicle can be repaired only at a registered workshop.
+
+A manager can view/generate various reports such as the list of new customers won in a month, pending claims, inspection reports, etc. The manager gives approval for a claim after examining the inspection report submitted by the surveyor. The manager can also view the previous claims made by a customer.
+
+Develop an information system for this insurance company. Implement all the important use cases required to perform day-to-day operations. The user interface need not to be graphical; you can use simple text-based menus as well.
+
+You cannot use any DBMS! Rather use simple files for data persistence.
+
+Besides the code/implementation, you are required to develop a class diagram and a use case diagram.
+
+The system must have a business layer (classes). The interface should not directly load/store data from/to  files.
+
+Finally, you are required to check the code quality of your project using some tool such as CCCC or SonarQube. Submit the report generated along with the source code.
+
+Use C++; other languages are not allowed.
+
+Good luck!

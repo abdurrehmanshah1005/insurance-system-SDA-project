@@ -1,0 +1,170 @@
+Build a complete C++ console application called Automobile Insurance Management System.
+
+You must implement this project based on:
+1. The instructor requirements:
+- Manage customers, vehicles, insurance details, claims, inspections, staff (salesmen and surveyors), and registered workshops.
+- Damaged vehicles can be repaired only at a registered workshop.
+- Manager can generate reports: new customers per month, pending claims, inspection reports, customer claim history.
+- Manager approves/rejects claims after checking surveyor inspection report.
+- Use file-based persistence only (no DBMS).
+- Must include business layer classes.
+- UI must not directly read/write files.
+- Include class diagram and use case diagram.
+- Include code quality report (SonarQube, CCCC, or equivalent).
+- Language must be C++.
+
+2. The class model intent:
+Core entities include Customer, Vehicle, InsurancePolicy, Claim, InspectionReport, Workshop, Staff.
+Business services include CustomerService, ClaimService, ReportService.
+A repository interface/file repository is used for persistence.
+Presentation layer uses a menu-driven InsuranceApp.
+
+3. The use case intent:
+Actors: Salesman, Surveyor, Manager.
+Salesman: register customer, add vehicle, issue policy, file claim.
+Surveyor: submit inspection report.
+Manager: review pending claims, approve/reject claims, assign workshop after approval, and generate reports.
+
+Technical requirements:
+1. Use C++17 or newer.
+2. Use clean layered architecture:
+- presentation layer: menu/UI only
+- business layer: all domain logic and validations
+- data access layer: file repositories
+3. No global mutable state except for app bootstrap singletons if absolutely needed.
+4. Use strong typing with enums for statuses.
+5. Use structured exception handling and user-friendly error messages.
+6. Include input validation for all menu entries and fields.
+7. Must compile on Windows with g++ and with CMake.
+
+Required project structure:
+- src/domain
+- src/services
+- src/repositories
+- src/ui
+- src/utils
+- include
+- data
+- docs
+- tests
+- CMakeLists.txt
+- README.md
+
+Entity details and business rules:
+1. Customer
+- customerId, name, contact, address, createdDate
+2. Vehicle
+- vehicleId, customerId, registrationNo (unique), make, model, year
+3. InsurancePolicy
+- policyId, customerId, vehicleId, startDate, endDate, premium, status
+- status enum: ACTIVE, EXPIRED, CANCELLED
+4. Claim
+- claimId, policyId, vehicleId, accidentDate, claimDate, status, surveyorId, workshopId, damageDescription
+- status enum: SUBMITTED, UNDER_REVIEW, INSPECTED, APPROVED, REJECTED, WORKSHOP_ASSIGNED, CLOSED
+5. InspectionReport
+- inspectionId, claimId, surveyorId, inspectionDate, estimatedCost, recommendation, remarks
+6. Workshop
+- workshopId, name, address, contact, status
+- status enum: REGISTERED, SUSPENDED
+7. Staff
+- staffId, name, role
+- role enum: SALESMAN, SURVEYOR, MANAGER
+
+Validation and workflow rules:
+1. Claim can be filed only if policy is ACTIVE and claimDate is within policy period.
+2. Surveyor can submit inspection report only for assigned claim.
+3. Manager can approve/reject only if inspection report exists.
+4. Workshop can be assigned only after claim is APPROVED.
+5. Workshop must be REGISTERED when assigned.
+6. Keep full audit trail fields: createdAt, updatedAt for each major record.
+7. Prevent duplicate vehicle registration number.
+8. Prevent policy creation for nonexistent customer/vehicle mismatch.
+
+Persistence requirements:
+1. Use file repositories only.
+2. Store each entity in separate files inside data folder.
+3. Use a robust text format (CSV with escaping OR JSON-like plain text parser implemented in project).
+4. Add simple transaction-safe writes:
+- write to temp file
+- rename to target file
+5. Provide repository interface abstractions and concrete file implementations.
+6. UI must call services only; services call repositories.
+
+Required menus:
+1. Main menu:
+- Login as Salesman / Surveyor / Manager
+- Exit
+2. Salesman menu:
+- Register customer
+- Add vehicle
+- Issue policy
+- File claim
+- List own created customers/policies/claims (optional but recommended)
+3. Surveyor menu:
+- View assigned claims
+- Submit inspection report
+4. Manager menu:
+- View pending claims
+- Approve claim
+- Reject claim
+- Assign workshop
+- Reports submenu
+5. Reports submenu:
+- New customers by month
+- Pending claims
+- Inspection reports by date range
+- Customer claim history
+
+Reporting requirements:
+1. New customers won in a month (month/year filter).
+2. Pending claims with days pending.
+3. Inspection report summary (by surveyor/date range).
+4. Claim history for a specific customer.
+5. Optional: claim approval rate and average estimated cost.
+
+Code quality and engineering requirements:
+1. Follow SOLID principles where practical.
+2. Use const correctness and pass by const reference.
+3. Separate interface headers and implementations.
+4. Add unit tests for service-layer business rules (at least 10 meaningful tests).
+5. Add lint/static-analysis support if possible.
+6. Generate and include code quality report in docs:
+- SonarQube OR CCCC OR cppcheck report
+- include summary and key findings
+
+Deliverables to generate:
+1. Full compilable source code.
+2. CMake build config.
+3. Seed data files with realistic sample records.
+4. README with:
+- project overview
+- architecture
+- build and run steps
+- menu walkthrough
+- assumptions
+- known limitations
+5. UML class diagram in Mermaid format.
+6. Use case diagram in Mermaid format.
+7. Code quality report document.
+8. Short design rationale document explaining key design choices.
+
+Build and run expectations:
+1. CMake configure and build commands documented.
+2. App runs from terminal and preserves data across runs.
+3. Graceful behavior on missing/corrupted data files (recover or show clear messages).
+
+Acceptance checklist (must satisfy all):
+1. No DBMS usage.
+2. UI does not directly access files.
+3. Manager approval tied to inspection report existence.
+4. Workshop assignment restricted to registered workshops after approval.
+5. Required reports are present and correct.
+6. Project compiles and runs on Windows.
+7. Includes diagrams and code quality report.
+
+Output format expected from you:
+1. First show final folder tree.
+2. Then provide all source files.
+3. Then provide sample data files.
+4. Then provide README, diagrams, and code quality report.
+5. End with exact build and run commands.
