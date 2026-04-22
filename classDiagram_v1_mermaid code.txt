@@ -1,124 +1,219 @@
 classDiagram
-%% =========================
-%% CORE DOMAIN CLASSES
-%% =========================
-class Customer {
-    -int customerId
-    -string name
-    -string contact
-    -string address
-}
+    %% =========================
+    %% CORE DOMAIN CLASSES
+    %% =========================
+    class Customer {
+        -int customerId
+        -string name
+        -string contact
+        -string address
+        -string createdDate
+        +toCSV() string
+        +fromCSV(string) Customer$
+        +getId() int
+    }
 
-class Vehicle {
-    -int vehicleId
-    -string registrationNo
-    -string make
-    -string model
-    -int year
-    -int customerId
-}
+    class Vehicle {
+        -int vehicleId
+        -string registrationNo
+        -string make
+        -string model
+        -int year
+        -int customerId
+        +toCSV() string
+        +fromCSV(string) Vehicle$
+        +getId() int
+    }
 
-class InsurancePolicy {
-    -int policyId
-    -int customerId
-    -int vehicleId
-    -string startDate
-    -string endDate
-    -double premium
-    -string status
-}
+    class InsurancePolicy {
+        -int policyId
+        -int customerId
+        -int vehicleId
+        -string startDate
+        -string endDate
+        -double premium
+        -PolicyStatus status
+        +isActive() bool
+        +toCSV() string
+        +fromCSV(string) InsurancePolicy$
+        +getId() int
+    }
 
-class Claim {
-    -int claimId
-    -int policyId
-    -int vehicleId
-    -string accidentDate
-    -string claimDate
-    -string status
-    -int surveyorId
-    -int workshopId
-    -string damageDescription
-}
+    class Claim {
+        -int claimId
+        -int policyId
+        -int vehicleId
+        -string accidentDate
+        -string claimDate
+        -ClaimStatus status
+        -int surveyorId
+        -int workshopId
+        -string damageDescription
+        +updateStatus(ClaimStatus) void
+        +toCSV() string
+        +fromCSV(string) Claim$
+        +getId() int
+    }
 
-class InspectionReport {
-    -int inspectionId
-    -int claimId
-    -int surveyorId
-    -string inspectionDate
-    -double estimatedCost
-    -string recommendation
-}
+    class InspectionReport {
+        -int inspectionId
+        -int claimId
+        -int surveyorId
+        -string inspectionDate
+        -double estimatedCost
+        -string recommendation
+        +toCSV() string
+        +fromCSV(string) InspectionReport$
+        +getId() int
+    }
 
-class Workshop {
-    -int workshopId
-    -string name
-    -string address
-    -string contact
-    -string status
-}
+    class Workshop {
+        -int workshopId
+        -string name
+        -string address
+        -string contact
+        -WorkshopStatus status
+        +isActive() bool
+        +toCSV() string
+        +fromCSV(string) Workshop$
+        +getId() int
+    }
 
-class Staff {
-    -int staffId
-    -string name
-    -string role
-}
+    class Staff {
+        -int staffId
+        -string name
+        -StaffRole role
+        -string password
+        +authenticate(string) bool
+        +toCSV() string
+        +fromCSV(string) Staff$
+        +getId() int
+    }
 
-%% =========================
-%% BUSINESS LAYER (SERVICES)
-%% =========================
-class CustomerService {
-    +registerCustomer() Customer
-    +addVehicle() Vehicle
-    +createPolicy() InsurancePolicy
-}
+    %% =========================
+    %% ENUMERATIONS
+    %% =========================
+    class PolicyStatus {
+        <<enumeration>>
+        ACTIVE
+        EXPIRED
+        CANCELLED
+    }
+    class ClaimStatus {
+        <<enumeration>>
+        SUBMITTED
+        UNDER_REVIEW
+        INSPECTED
+        APPROVED
+        REJECTED
+        WORKSHOP_ASSIGNED
+        CLOSED
+    }
+    class WorkshopStatus {
+        <<enumeration>>
+        REGISTERED
+        SUSPENDED
+    }
+    class StaffRole {
+        <<enumeration>>
+        SALESMAN
+        SURVEYOR
+        MANAGER
+    }
 
-class ClaimService {
-    +createClaim() Claim
-    +assignSurveyor() bool
-    +addInspectionReport() InspectionReport
-    +approveClaim() bool
-    +rejectClaim() bool
-    +assignWorkshop() bool
-}
+    %% =========================
+    %% BUSINESS LAYER (SERVICES)
+    %% =========================
+    class CustomerService {
+        -FileRepository~Customer~ customerRepo
+        -FileRepository~Vehicle~ vehicleRepo
+        -FileRepository~InsurancePolicy~ policyRepo
+        +registerCustomer(string, string, string) Customer
+        +addVehicle(int, string, string, string, int) Vehicle
+        +createPolicy(int, int, string, string, double) InsurancePolicy
+        +getCustomer(int) Customer
+        +getAllCustomers() vector~Customer~
+        +getVehiclesByCustomer(int) vector~Vehicle~
+        +getPoliciesByCustomer(int) vector~InsurancePolicy~
+    }
 
-class ReportService {
-    +getNewCustomersByMonth() vector~Customer~
-    +getPendingClaims() vector~Claim~
-    +getCustomerClaimHistory() vector~Claim~
-}
+    class ClaimService {
+        -FileRepository~Claim~ claimRepo
+        -FileRepository~InsurancePolicy~ policyRepo
+        -FileRepository~InspectionReport~ inspectionRepo
+        -FileRepository~Workshop~ workshopRepo
+        -FileRepository~Staff~ staffRepo
+        +createClaim(int, int, string, string) Claim
+        +assignSurveyor(int, int) bool
+        +addInspectionReport(int, int, string, double, string) InspectionReport
+        +approveClaim(int) bool
+        +rejectClaim(int) bool
+        +assignWorkshop(int, int) bool
+        +getPendingClaims() vector~Claim~
+        +getClaimsBySurveyor(int) vector~Claim~
+        +getActiveWorkshops() vector~Workshop~
+    }
 
-%% =========================
-%% DATA ACCESS LAYER (FILES)
-%% =========================
-class FileRepository {
-    <<interface>>
-    +loadAllRecords(string filename)
-    +saveAllRecords(string filename, data)
-    +appendRecord(string filename, record)
-}
+    class ReportService {
+        -FileRepository~Customer~ customerRepo
+        -FileRepository~Claim~ claimRepo
+        -FileRepository~InspectionReport~ inspectionRepo
+        -FileRepository~InsurancePolicy~ policyRepo
+        +getNewCustomersByMonth(int, int) vector~Customer~
+        +getPendingClaims() vector~Claim~
+        +getCustomerClaimHistory(int) vector~Claim~
+        +getInspectionReports() vector~InspectionReport~
+    }
 
-%% =========================
-%% PRESENTATION LAYER
-%% =========================
-class InsuranceApp {
-    +run() void
-}
+    %% =========================
+    %% DATA ACCESS LAYER
+    %% =========================
+    class FileRepository~T~ {
+        <<template>>
+        -string filename
+        +loadAllRecords() vector~T~
+        +saveAllRecords(vector~T~) void
+        +appendRecord(T) void
+        +getNextId() int
+        +findById(vector~T~, int) T*
+    }
 
-%% =========================
-%% RELATIONSHIPS
-%% =========================
-Customer "1" --> "0..*" Vehicle : owns
-Customer "1" --> "0..*" InsurancePolicy : holds
-InsurancePolicy "1" --> "0..*" Claim : has
-Claim "1" --> "0..1" InspectionReport : includes
-Workshop "1" --> "0..*" Claim : repairs
-Staff "1" --> "0..*" InspectionReport : creates
-Staff "1" --> "0..*" Claim : reviews
+    %% =========================
+    %% PRESENTATION LAYER
+    %% =========================
+    class InsuranceApp {
+        -FileRepository~Staff~ staffRepo
+        -CustomerService customerSvc
+        -ClaimService claimSvc
+        -ReportService reportSvc
+        +run() void
+        -showMainMenu() void
+        -login(StaffRole) Staff
+        -salesmanMenu(Staff) void
+        -surveyorMenu(Staff) void
+        -managerMenu(Staff) void
+    }
 
-InsuranceApp ..> CustomerService : uses
-InsuranceApp ..> ClaimService : uses
-InsuranceApp ..> ReportService : uses
+    %% =========================
+    %% RELATIONSHIPS
+    %% =========================
+    Customer "1" --> "0..*" Vehicle : owns
+    Customer "1" --> "0..*" InsurancePolicy : holds
+    InsurancePolicy "1" --> "0..*" Claim : has
+    Claim "1" --> "0..1" InspectionReport : includes
+    Workshop "1" --> "0..*" Claim : repairs
+    Staff "1" --> "0..*" InspectionReport : creates
+    Staff "1" --> "0..*" Claim : reviews
 
-CustomerService ..> FileRepository : reads/writes
-ClaimService ..> FileRepository : reads/writes
-ReportService ..> FileRepository : reads
+    InsurancePolicy --> PolicyStatus
+    Claim --> ClaimStatus
+    Workshop --> WorkshopStatus
+    Staff --> StaffRole
+
+    InsuranceApp ..> CustomerService : uses
+    InsuranceApp ..> ClaimService : uses
+    InsuranceApp ..> ReportService : uses
+
+    CustomerService ..> FileRepository~T~ : uses
+    ClaimService ..> FileRepository~T~ : uses
+    ReportService ..> FileRepository~T~ : uses
