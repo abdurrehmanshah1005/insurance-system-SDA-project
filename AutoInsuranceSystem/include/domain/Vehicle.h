@@ -1,3 +1,12 @@
+/**
+ * @file Vehicle.h
+ * @brief Domain entity representing a vehicle owned by a customer.
+ *
+ * Each vehicle is linked to a customer via customerId and can have
+ * one or more insurance policies associated with it. The registration
+ * number must be unique across the system to prevent duplicate entries.
+ */
+
 #ifndef VEHICLE_H
 #define VEHICLE_H
 
@@ -5,19 +14,23 @@
 #include <iostream>
 #include <sstream>
 
+// Represents a vehicle registered in the insurance system.
+// Each vehicle belongs to exactly one customer and may be insured.
 struct Vehicle {
-    int    vehicleId = 0;
-    std::string registrationNo;
-    std::string make;
-    std::string model;
-    int    year = 0;
-    int    customerId = 0;
+    int    vehicleId = 0;          // Unique identifier assigned by the system
+    std::string registrationNo;    // Unique vehicle registration plate number
+    std::string make;              // Manufacturer (e.g., Toyota, Honda)
+    std::string model;             // Model name (e.g., Corolla, Civic)
+    int    year = 0;               // Year of manufacture
+    int    customerId = 0;         // Foreign key linking to the owning customer
 
+    // Serialize vehicle data to pipe-delimited CSV format
     std::string toCSV() const {
         return std::to_string(vehicleId) + "|" + registrationNo + "|" + make + "|" +
                model + "|" + std::to_string(year) + "|" + std::to_string(customerId);
     }
 
+    // Parse a CSV line and reconstruct a Vehicle object
     static Vehicle fromCSV(const std::string& line) {
         Vehicle v;
         std::stringstream ss(line);
@@ -31,6 +44,7 @@ struct Vehicle {
         return v;
     }
 
+    // Display vehicle information in a formatted console output
     void display() const {
         std::cout << "  ID: " << vehicleId
                   << " | Reg#: " << registrationNo
@@ -38,6 +52,7 @@ struct Vehicle {
                   << " | Owner ID: " << customerId << "\n";
     }
 
+    // Return unique identifier (required by FileRepository template)
     int getId() const { return vehicleId; }
 };
 

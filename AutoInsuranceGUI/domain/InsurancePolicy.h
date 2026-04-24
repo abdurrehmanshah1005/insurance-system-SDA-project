@@ -1,3 +1,12 @@
+/**
+ * @file InsurancePolicy.h
+ * @brief Domain entity representing an automobile insurance policy.
+ *
+ * A policy links a customer to a specific vehicle with coverage dates
+ * and a premium amount. Claims can only be filed against ACTIVE policies
+ * where the accident date falls within the coverage period (startDate to endDate).
+ */
+
 #ifndef INSURANCE_POLICY_H
 #define INSURANCE_POLICY_H
 
@@ -6,26 +15,31 @@
 #include <sstream>
 #include "Enums.h"
 
+// Represents an insurance policy that covers a specific vehicle for a customer.
+// Policies define the coverage period and premium paid by the customer.
 struct InsurancePolicy {
-    int    policyId   = 0;
-    int    customerId = 0;
-    int    vehicleId  = 0;
-    std::string startDate;     // YYYY-MM-DD
-    std::string endDate;       // YYYY-MM-DD
-    double premium    = 0.0;
-    PolicyStatus status = PolicyStatus::ACTIVE;
+    int    policyId   = 0;         // Unique policy identifier
+    int    customerId = 0;         // ID of the customer who holds this policy
+    int    vehicleId  = 0;         // ID of the vehicle covered by this policy
+    std::string startDate;         // Coverage start date in YYYY-MM-DD format
+    std::string endDate;           // Coverage end date in YYYY-MM-DD format
+    double premium    = 0.0;       // Premium amount paid for this policy
+    PolicyStatus status = PolicyStatus::ACTIVE;  // Current status of the policy
 
+    // Check if policy is active and covers the given date
     bool isActive(const std::string& currentDate) const {
         return status == PolicyStatus::ACTIVE &&
                currentDate >= startDate && currentDate <= endDate;
     }
 
+    // Serialize policy record to pipe-delimited CSV string
     std::string toCSV() const {
         return std::to_string(policyId) + "|" + std::to_string(customerId) + "|" +
                std::to_string(vehicleId) + "|" + startDate + "|" + endDate + "|" +
                std::to_string(premium) + "|" + policyStatusToString(status);
     }
 
+    // Reconstruct an InsurancePolicy object from a CSV line
     static InsurancePolicy fromCSV(const std::string& line) {
         InsurancePolicy p;
         std::stringstream ss(line);
@@ -40,6 +54,7 @@ struct InsurancePolicy {
         return p;
     }
 
+    // Print policy information to the console
     void display() const {
         std::cout << "  Policy#: " << policyId
                   << " | Customer: " << customerId
@@ -49,6 +64,7 @@ struct InsurancePolicy {
                   << " | Status: " << policyStatusToString(status) << "\n";
     }
 
+    // Return unique identifier (required by FileRepository template)
     int getId() const { return policyId; }
 };
 

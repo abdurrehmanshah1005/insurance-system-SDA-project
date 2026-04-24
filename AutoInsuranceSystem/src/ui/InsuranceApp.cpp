@@ -1,8 +1,18 @@
+/**
+ * @file InsuranceApp.cpp
+ * @brief Implementation of the console-based insurance management UI.
+ *
+ * Implements all menu screens and user interaction flows for the three
+ * staff roles. Each operation collects user input, delegates to the
+ * appropriate service, and displays the result or error message.
+ */
+
 #include "../include/ui/InsuranceApp.h"
 #include "../include/common/Utils.h"
 #include <iostream>
 #include <iomanip>
 
+// Initialize all services and ensure the data directory exists on disk
 InsuranceApp::InsuranceApp(const std::string& dataDir)
     : dataDir(dataDir),
       customerService(dataDir),
@@ -12,6 +22,7 @@ InsuranceApp::InsuranceApp(const std::string& dataDir)
     Utils::ensureDataDir(dataDir);
 }
 
+// Display the welcome banner and start the main menu loop
 void InsuranceApp::run() {
     std::cout << "========================================\n";
     std::cout << " Automobile Insurance Management System\n";
@@ -20,7 +31,7 @@ void InsuranceApp::run() {
 }
 
 // ════════════════════════════════════════════
-//  MAIN MENU
+//  MAIN MENU — Role selection and login
 // ════════════════════════════════════════════
 void InsuranceApp::showMainMenu() {
     while (true) {
@@ -34,6 +45,7 @@ void InsuranceApp::showMainMenu() {
             std::cout << "Goodbye!\n";
             return;
         }
+        // Map menu choice to staff role
         StaffRole selectedRole;
         switch (choice) {
             case 1: selectedRole = StaffRole::SALESMAN; break;
@@ -41,6 +53,7 @@ void InsuranceApp::showMainMenu() {
             case 3: selectedRole = StaffRole::MANAGER;  break;
             default: std::cout << "  Invalid choice.\n"; continue;
         }
+        // Attempt login and route to role-specific menu
         try {
             Staff staff = login(selectedRole);
             std::cout << "\nWelcome, " << staff.name << " ("
@@ -56,12 +69,14 @@ void InsuranceApp::showMainMenu() {
     }
 }
 
+// Authenticate staff member by ID, password, and expected role
 Staff InsuranceApp::login(StaffRole expectedRole) {
     int id = Utils::readInt("Staff ID: ");
     std::string pwd = Utils::readString("Password: ");
     auto staffList = staffRepo.loadAllRecords();
     for (const auto& s : staffList) {
         if (s.staffId == id && s.authenticate(pwd)) {
+            // Verify the staff member has the correct role
             if (s.role != expectedRole)
                 throw std::runtime_error("This staff member is not a " + staffRoleToString(expectedRole) + ".");
             return s;
@@ -71,7 +86,7 @@ Staff InsuranceApp::login(StaffRole expectedRole) {
 }
 
 // ════════════════════════════════════════════
-//  SALESMAN MENU
+//  SALESMAN MENU — Customer and policy operations
 // ════════════════════════════════════════════
 void InsuranceApp::salesmanMenu(const Staff& staff) {
     while (true) {
@@ -98,7 +113,7 @@ void InsuranceApp::salesmanMenu(const Staff& staff) {
 }
 
 // ════════════════════════════════════════════
-//  SURVEYOR MENU
+//  SURVEYOR MENU — Inspection operations
 // ════════════════════════════════════════════
 void InsuranceApp::surveyorMenu(const Staff& staff) {
     while (true) {
@@ -121,7 +136,7 @@ void InsuranceApp::surveyorMenu(const Staff& staff) {
 }
 
 // ════════════════════════════════════════════
-//  MANAGER MENU
+//  MANAGER MENU — Claim management and reports
 // ════════════════════════════════════════════
 void InsuranceApp::managerMenu(const Staff& staff) {
     while (true) {
@@ -154,7 +169,7 @@ void InsuranceApp::managerMenu(const Staff& staff) {
 }
 
 // ════════════════════════════════════════════
-//  REPORTS SUB-MENU
+//  REPORTS SUB-MENU — Report generation options
 // ════════════════════════════════════════════
 void InsuranceApp::reportsMenu() {
     while (true) {
@@ -179,8 +194,10 @@ void InsuranceApp::reportsMenu() {
 }
 
 // ════════════════════════════════════════════
-//  SALESMAN OPERATIONS
+//  SALESMAN OPERATIONS — UI interaction flows
 // ════════════════════════════════════════════
+
+// Collect customer details and delegate to CustomerService
 void InsuranceApp::registerCustomer() {
     std::cout << "\n-- Register New Customer --\n";
     std::string name    = Utils::readString("Name: ");
@@ -191,6 +208,7 @@ void InsuranceApp::registerCustomer() {
     c.display();
 }
 
+// Collect vehicle details and register under a customer
 void InsuranceApp::addVehicle() {
     std::cout << "\n-- Add Vehicle --\n";
     int custId      = Utils::readInt("Customer ID: ");
@@ -203,11 +221,12 @@ void InsuranceApp::addVehicle() {
     v.display();
 }
 
+// Issue a new policy after showing customer's vehicles for reference
 void InsuranceApp::issuePolicy() {
     std::cout << "\n-- Issue Insurance Policy --\n";
     int custId  = Utils::readInt("Customer ID: ");
 
-    // Show customer's vehicles
+    // Show customer's vehicles so salesman can select the correct one
     auto vehicles = customerService.getVehiclesByCustomer(custId);
     if (vehicles.empty()) {
         std::cout << "  Customer has no vehicles. Please add one first.\n";
@@ -225,6 +244,7 @@ void InsuranceApp::issuePolicy() {
     p.display();
 }
 
+// File a damage claim against an existing policy
 void InsuranceApp::fileClaim() {
     std::cout << "\n-- File Damage Claim --\n";
     int polId       = Utils::readInt("Policy ID: ");
@@ -233,6 +253,7 @@ void InsuranceApp::fileClaim() {
         std::cout << "  Policy not found.\n";
         return;
     }
+    // Show policy details for confirmation
     std::cout << "  Policy details:\n";
     pol->display();
 
@@ -244,8 +265,10 @@ void InsuranceApp::fileClaim() {
 }
 
 // ════════════════════════════════════════════
-//  SURVEYOR OPERATIONS
+//  SURVEYOR OPERATIONS — Inspection workflow
 // ════════════════════════════════════════════
+
+// Display all claims currently assigned to this surveyor
 void InsuranceApp::viewAssignedClaims(int surveyorId) {
     auto claims = claimService.getClaimsBySurveyor(surveyorId);
     if (claims.empty()) {
@@ -257,9 +280,10 @@ void InsuranceApp::viewAssignedClaims(int surveyorId) {
     for (const auto& c : claims) c.display();
 }
 
+// Submit an inspection report for one of the surveyor's assigned claims
 void InsuranceApp::submitInspection(int surveyorId) {
     std::cout << "\n-- Submit Inspection Report --\n";
-    viewAssignedClaims(surveyorId);
+    viewAssignedClaims(surveyorId);  // Show claims for reference
 
     int claimId        = Utils::readInt("Claim ID: ");
     std::string inDate = Utils::readDate("Inspection Date (YYYY-MM-DD): ");
@@ -271,8 +295,10 @@ void InsuranceApp::submitInspection(int surveyorId) {
 }
 
 // ════════════════════════════════════════════
-//  MANAGER OPERATIONS
+//  MANAGER OPERATIONS — Claim approval workflow
 // ════════════════════════════════════════════
+
+// Show all claims that need manager attention
 void InsuranceApp::viewPendingClaims() {
     auto claims = claimService.getPendingClaims();
     if (claims.empty()) {
@@ -284,18 +310,21 @@ void InsuranceApp::viewPendingClaims() {
     for (const auto& c : claims) c.display();
 }
 
+// Assign a surveyor staff member to inspect a submitted claim
 void InsuranceApp::assignSurveyorToClaim() {
     std::cout << "\n-- Assign Surveyor to Claim --\n";
-    viewPendingClaims();
+    viewPendingClaims();  // Show pending claims for reference
     int claimId    = Utils::readInt("Claim ID: ");
     int surveyorId = Utils::readInt("Surveyor Staff ID: ");
     claimService.assignSurveyor(claimId, surveyorId);
     std::cout << "  [OK] Surveyor " << surveyorId << " assigned to claim " << claimId << ".\n";
 }
 
+// Approve an inspected claim after reviewing the inspection report
 void InsuranceApp::approveClaim() {
     std::cout << "\n-- Approve Claim --\n";
     int claimId = Utils::readInt("Claim ID: ");
+    // Show inspection report if available for manager review
     auto insp = claimService.getInspectionByClaim(claimId);
     if (insp.has_value()) {
         std::cout << "  Inspection report:\n";
@@ -305,9 +334,11 @@ void InsuranceApp::approveClaim() {
     std::cout << "  [OK] Claim " << claimId << " APPROVED.\n";
 }
 
+// Reject an inspected claim after reviewing the inspection report
 void InsuranceApp::rejectClaim() {
     std::cout << "\n-- Reject Claim --\n";
     int claimId = Utils::readInt("Claim ID: ");
+    // Show inspection report for manager reference before rejection
     auto insp = claimService.getInspectionByClaim(claimId);
     if (insp.has_value()) {
         std::cout << "  Inspection report:\n";
@@ -317,8 +348,10 @@ void InsuranceApp::rejectClaim() {
     std::cout << "  [OK] Claim " << claimId << " REJECTED.\n";
 }
 
+// Assign a registered workshop to repair the vehicle for an approved claim
 void InsuranceApp::assignWorkshop() {
     std::cout << "\n-- Assign Workshop --\n";
+    // Display available workshops for selection
     auto workshops = claimService.getActiveWorkshops();
     if (workshops.empty()) {
         std::cout << "  No registered workshops available.\n";
@@ -333,6 +366,7 @@ void InsuranceApp::assignWorkshop() {
     std::cout << "  [OK] Workshop " << workshopId << " assigned to claim " << claimId << ".\n";
 }
 
+// View complete claim history for a specific customer
 void InsuranceApp::viewCustomerClaimHistory() {
     int custId = Utils::readInt("Customer ID: ");
     auto claims = reportService.getCustomerClaimHistory(custId);
@@ -346,8 +380,10 @@ void InsuranceApp::viewCustomerClaimHistory() {
 }
 
 // ════════════════════════════════════════════
-//  REPORT OPERATIONS
+//  REPORT OPERATIONS — Management reports
 // ════════════════════════════════════════════
+
+// Generate report of customers registered in a specific month/year
 void InsuranceApp::reportNewCustomers() {
     int month = Utils::readInt("Month (1-12): ");
     int year  = Utils::readInt("Year: ");
@@ -362,6 +398,7 @@ void InsuranceApp::reportNewCustomers() {
     std::cout << "  Total: " << custs.size() << "\n";
 }
 
+// Generate report of all pending claims requiring attention
 void InsuranceApp::reportPendingClaims() {
     auto claims = reportService.getPendingClaims();
     if (claims.empty()) {
@@ -374,6 +411,7 @@ void InsuranceApp::reportPendingClaims() {
     std::cout << "  Total pending: " << claims.size() << "\n";
 }
 
+// Generate report of all inspection reports in the system
 void InsuranceApp::reportInspections() {
     auto reports = reportService.getInspectionReports();
     if (reports.empty()) {

@@ -1,3 +1,16 @@
+/**
+ * @file App.h
+ * @brief Main application class for the SFML-based GUI Insurance Management System.
+ *
+ * This header-only class implements the complete graphical user interface using SFML.
+ * It manages three screens (Role Selection, Login, Dashboard) and provides
+ * role-based workflows for Salesman, Surveyor, and Manager operations.
+ *
+ * Architecture: The App class acts as the Presentation Layer, delegating all
+ * business logic to CustomerService, ClaimService, and ReportService.
+ * Data persistence is handled by FileRepository through CSV files.
+ */
+
 #ifndef APP_H
 #define APP_H
 
@@ -12,7 +25,10 @@
 #include <memory>
 #include <functional>
 
+// Application screen states for navigation flow
 enum class Screen { ROLE_SELECT, LOGIN, DASHBOARD };
+
+// Dashboard content panels — each represents a different operation view
 enum class ContentPanel {
     NONE, REG_CUSTOMER, ADD_VEHICLE, ISSUE_POLICY, FILE_CLAIM,
     VIEW_ASSIGNED, SUBMIT_INSPECTION,
@@ -21,66 +37,73 @@ enum class ContentPanel {
     REP_NEW_CUST, REP_PENDING, REP_INSPECTIONS
 };
 
+// Main application class — manages SFML window, screens, and business services
 class App {
-    sf::RenderWindow window;
-    sf::Font font, fontBold;
-    Screen currentScreen = Screen::ROLE_SELECT;
-    ContentPanel currentPanel = ContentPanel::NONE;
-    Staff loggedInStaff;
-    StaffRole selectedRole = StaffRole::SALESMAN;
-    std::string dataDir = "data";
+    // ── Core SFML components ──
+    sf::RenderWindow window;           // Main rendering window
+    sf::Font font, fontBold;           // Regular and bold typefaces
+    Screen currentScreen = Screen::ROLE_SELECT;  // Current navigation state
+    ContentPanel currentPanel = ContentPanel::NONE;  // Active dashboard panel
+    Staff loggedInStaff;               // Currently authenticated staff member
+    StaffRole selectedRole = StaffRole::SALESMAN;  // Role selected at login
+    std::string dataDir = "data";      // Path to CSV data directory
 
-    CustomerService customerSvc;
-    ClaimService claimSvc;
-    ReportService reportSvc;
-    FileRepository<Staff> staffRepo;
+    // ── Business layer services ──
+    CustomerService customerSvc;       // Customer, vehicle, policy operations
+    ClaimService claimSvc;             // Claim lifecycle management
+    ReportService reportSvc;           // Report generation
+    FileRepository<Staff> staffRepo;   // Staff authentication lookups
 
-    // Role select widgets
+    // ── Role selection screen widgets ──
     Panel roleCard;
     Label roleTitle, roleSubtitle;
     Button roleSalesmanBtn, roleSurveyorBtn, roleManagerBtn;
 
-    // Login widgets
+    // ── Login screen widgets ──
     Panel loginCard;
     Label loginTitle, loginRoleLabel, loginError;
     TextInput loginId, loginPwd;
     Button loginBtn, loginBackBtn;
 
-    // Dashboard widgets
-    Panel sidebar, header, contentBg;
-    Label headerTitle, headerRole;
-    Button logoutBtn;
-    std::vector<Button> navButtons;
-    Toast toast;
+    // ── Dashboard layout widgets ──
+    Panel sidebar, header, contentBg;  // Main layout panels
+    Label headerTitle, headerRole;     // Header text elements
+    Button logoutBtn;                  // Logout button in header
+    std::vector<Button> navButtons;    // Sidebar navigation buttons
+    Toast toast;                       // Notification popup
 
-    // Form inputs (reused per panel)
-    std::vector<TextInput> formInputs;
-    std::vector<Button> formButtons;
-    std::vector<Label> formLabels;
-    DataTable dataTable, secondTable;
-    Label panelTitle;
-    Label statusLabel;
+    // ── Dynamic form widgets (rebuilt for each panel switch) ──
+    std::vector<TextInput> formInputs; // Input fields for current form
+    std::vector<Button> formButtons;   // Action buttons for current form
+    std::vector<Label> formLabels;     // Labels for current form
+    DataTable dataTable, secondTable;  // Primary and secondary data tables
+    Label panelTitle;                  // Current panel title
+    Label statusLabel;                 // Status/info display
 
 public:
+    // Initialize SFML window, load fonts, set up services, and show role selection
     App() : window(sf::VideoMode({Theme::WIN_W, Theme::WIN_H}), "Auto Insurance System", sf::Style::Close),
             font(Theme::FONT_PATH), fontBold(Theme::FONT_BOLD_PATH),
             customerSvc(dataDir), claimSvc(dataDir), reportSvc(dataDir),
             staffRepo(dataDir + "/staff.csv"), toast(font)
     {
         window.setFramerateLimit(60);
-        setupRoleSelect();
+        setupRoleSelect();  // Start on the role selection screen
     }
 
+    // Main application loop — polls events, updates state, and renders
     void run() {
         while (window.isOpen()) {
             while (auto event = window.pollEvent()) {
                 if (event->is<sf::Event::Closed>()) window.close();
+            // Process events based on current screen state
                 switch (currentScreen) {
                     case Screen::ROLE_SELECT: handleRoleSelectEvent(*event); break;
                     case Screen::LOGIN: handleLoginEvent(*event); break;
                     case Screen::DASHBOARD: handleDashboardEvent(*event); break;
                 }
             }
+            // Render the active screen with a cleared background
             window.clear(Theme::BG);
             switch (currentScreen) {
                 case Screen::ROLE_SELECT: drawRoleSelect(); break;
@@ -96,7 +119,9 @@ private:
     // ═══════════════════════════════════════
     //  ROLE SELECTION SCREEN
     // ═══════════════════════════════════════
+    // Set up role selection button callbacks to navigate to login
     void setupRoleSelect() {
+        // Calculate centered position for the role selection card
         float cw = 400, ch = 320;
         float cx = (Theme::WIN_W - cw) / 2.f, cy = (Theme::WIN_H - ch) / 2.f;
         roleCard = Panel({cx, cy}, {cw, ch}, Theme::CARD);
@@ -112,9 +137,11 @@ private:
         roleManagerBtn = Button(fontBold, "Login as Manager", {cx+30, cy+230}, {bw, bh}, Theme::SUCCESS, Theme::SUCCESS_HOVER);
         roleManagerBtn.setCallback([this](){ selectedRole=StaffRole::MANAGER; currentScreen=Screen::LOGIN; setupLogin(); });
     }
+    // Handle click events for role selection buttons
     void handleRoleSelectEvent(const sf::Event& e) {
         roleSalesmanBtn.handleEvent(e); roleSurveyorBtn.handleEvent(e); roleManagerBtn.handleEvent(e);
     }
+    // Render the role selection screen with top accent bar
     void drawRoleSelect() {
         sf::RectangleShape topBar({(float)Theme::WIN_W, 4.f});
         topBar.setFillColor(Theme::PRIMARY); window.draw(topBar);
@@ -125,12 +152,15 @@ private:
     // ═══════════════════════════════════════
     //  LOGIN SCREEN
     // ═══════════════════════════════════════
+    // Build the login form with ID/password fields and back button
     void setupLogin() {
+        // Calculate centered position for the login card
         float cw = 380, ch = 380;
         float cx = (Theme::WIN_W - cw) / 2.f, cy = (Theme::WIN_H - ch) / 2.f;
         loginCard = Panel({cx, cy}, {cw, ch}, Theme::CARD);
         loginTitle = Label(fontBold, "Staff Login", Theme::FONT_XL, Theme::TEXT_PRIMARY);
         loginTitle.setPosition({cx + 105, cy + 20});
+        // Color-code the role label: blue for salesman, purple for surveyor, green for manager
         sf::Color rc = selectedRole==StaffRole::SALESMAN ? Theme::PRIMARY : selectedRole==StaffRole::SURVEYOR ? Theme::ACCENT : Theme::SUCCESS;
         loginRoleLabel = Label(fontBold, staffRoleToString(selectedRole), Theme::FONT_LG, rc);
         loginRoleLabel.setPosition({cx + 130, cy + 58});
@@ -145,6 +175,7 @@ private:
         loginError.setPosition({cx + 30, cy + 330});
     }
 
+    // Authenticate staff against the staff.csv file and validate role match
     void doLogin() {
         try {
             int id = std::stoi(loginId.getValue());
@@ -165,6 +196,7 @@ private:
         } catch (...) { loginError.setString("Enter a valid staff ID!"); }
     }
 
+    // Handle text input, button clicks, and keyboard shortcuts on login
     void handleLoginEvent(const sf::Event& e) {
         loginId.handleEvent(e); loginPwd.handleEvent(e);
         loginBtn.handleEvent(e); loginBackBtn.handleEvent(e);
@@ -174,6 +206,7 @@ private:
         }
     }
 
+    // Render the login card with all form elements
     void drawLogin() {
         sf::RectangleShape topBar({(float)Theme::WIN_W, 4.f});
         topBar.setFillColor(Theme::PRIMARY); window.draw(topBar);
@@ -185,9 +218,12 @@ private:
     // ═══════════════════════════════════════
     //  DASHBOARD
     // ═══════════════════════════════════════
+    // Build the dashboard layout: sidebar navigation, header, and content area
     void setupDashboard() {
         sidebar = Panel({0, 0}, {Theme::SIDEBAR_W, (float)Theme::WIN_H}, Theme::SIDEBAR);
+        // Header bar spans the width minus sidebar
         header = Panel({Theme::SIDEBAR_W, 0}, {Theme::WIN_W - Theme::SIDEBAR_W, Theme::HEADER_H}, {20, 30, 48});
+        // Content background area with padding
         contentBg = Panel({Theme::SIDEBAR_W + 16, Theme::HEADER_H + 16},
                           {Theme::WIN_W - Theme::SIDEBAR_W - 32, Theme::WIN_H - Theme::HEADER_H - 32}, Theme::CARD);
 
@@ -200,8 +236,9 @@ private:
         logoutBtn.setCallback([this]() { currentScreen = Screen::ROLE_SELECT; loginId.clear(); loginPwd.clear(); loginError.setString(""); });
 
         // Navigation buttons
+        // Build role-specific navigation buttons in the sidebar
         navButtons.clear();
-        float ny = 80;
+        float ny = 80;  // Starting Y position for nav buttons
         auto addNav = [&](const std::string& label, ContentPanel panel) {
             Button b(font, label, {10, ny}, {Theme::SIDEBAR_W - 20, 38}, Theme::SIDEBAR, Theme::CARD_HOVER);
             b.setCallback([this, panel]() { switchPanel(panel); });
@@ -245,12 +282,14 @@ private:
         }
     }
 
+    // Switch the dashboard content area to show a different operation panel.
+    // Clears all dynamic widgets and rebuilds them for the selected panel.
     void switchPanel(ContentPanel p) {
         currentPanel = p;
         formInputs.clear(); formButtons.clear(); formLabels.clear();
-        secondTable = DataTable(); // reset second table
-        float cx = Theme::SIDEBAR_W + 36, cy = Theme::HEADER_H + 56;
-        float fw = Theme::WIN_W - Theme::SIDEBAR_W - 72;
+        secondTable = DataTable(); // Reset secondary table
+        float cx = Theme::SIDEBAR_W + 36, cy = Theme::HEADER_H + 56;  // Content origin
+        float fw = Theme::WIN_W - Theme::SIDEBAR_W - 72;  // Available content width
 
         auto addInput = [&](const std::string& lbl, const std::string& ph, bool pwd = false) {
             formInputs.emplace_back(font, ph, sf::Vector2f{cx, cy}, sf::Vector2f{fw > 400 ? 350.f : fw, Theme::INPUT_H}, lbl, pwd);
@@ -264,14 +303,14 @@ private:
         };
 
         switch (p) {
-        case ContentPanel::REG_CUSTOMER:
+        case ContentPanel::REG_CUSTOMER:  // Salesman: register a new customer
             panelTitle.setString("Register New Customer"); panelTitle.setPosition({cx, cy - 20}); cy += 30;
             addInput("Name", "Enter customer name");
             addInput("Contact", "Phone number");
             addInput("Address", "Full address");
             addBtn("Register", Theme::SUCCESS, Theme::SUCCESS_HOVER, [this]() { doRegisterCustomer(); });
             break;
-        case ContentPanel::ADD_VEHICLE:
+        case ContentPanel::ADD_VEHICLE:  // Salesman: register vehicle under customer
             panelTitle.setString("Add Vehicle"); panelTitle.setPosition({cx, cy - 20}); cy += 30;
             addInput("Customer ID", "Enter customer ID");
             addInput("Registration No", "e.g. ABC-123");
@@ -280,7 +319,7 @@ private:
             addInput("Year", "e.g. 2023");
             addBtn("Add Vehicle", Theme::SUCCESS, Theme::SUCCESS_HOVER, [this]() { doAddVehicle(); });
             break;
-        case ContentPanel::ISSUE_POLICY:
+        case ContentPanel::ISSUE_POLICY:  // Salesman: create insurance policy
             panelTitle.setString("Issue Insurance Policy"); panelTitle.setPosition({cx, cy - 20}); cy += 30;
             addInput("Customer ID", "Customer ID");
             addInput("Vehicle ID", "Vehicle ID");
@@ -289,7 +328,7 @@ private:
             addInput("Premium", "Amount");
             addBtn("Issue Policy", Theme::SUCCESS, Theme::SUCCESS_HOVER, [this]() { doIssuePolicy(); });
             break;
-        case ContentPanel::FILE_CLAIM:
+        case ContentPanel::FILE_CLAIM:  // Salesman: file a damage claim
             panelTitle.setString("File Damage Claim"); panelTitle.setPosition({cx, cy - 20}); cy += 30;
             addInput("Policy ID", "Policy ID");
             addInput("Vehicle ID", "Vehicle ID");
@@ -297,11 +336,11 @@ private:
             addInput("Damage Description", "Describe damage");
             addBtn("File Claim", Theme::WARNING, {200, 130, 0}, [this]() { doFileClaim(); });
             break;
-        case ContentPanel::VIEW_ASSIGNED:
+        case ContentPanel::VIEW_ASSIGNED:  // Surveyor: view claims assigned to them
             panelTitle.setString("Assigned Claims"); panelTitle.setPosition({cx, cy - 20}); cy += 30;
             setupClaimTable(cx, cy, fw); loadAssignedClaims();
             break;
-        case ContentPanel::SUBMIT_INSPECTION:
+        case ContentPanel::SUBMIT_INSPECTION:  // Surveyor: submit findings for a claim
             panelTitle.setString("Submit Inspection Report"); panelTitle.setPosition({cx, cy - 20}); cy += 30;
             // Show assigned UNDER_REVIEW claims as reference
             dataTable = DataTable(font, {cx, cy}, {fw, 150},
@@ -320,11 +359,11 @@ private:
             addInput("Recommendation", "Your recommendation");
             addBtn("Submit Report", Theme::SUCCESS, Theme::SUCCESS_HOVER, [this]() { doSubmitInspection(); });
             break;
-        case ContentPanel::PENDING_CLAIMS:
+        case ContentPanel::PENDING_CLAIMS:  // Manager: view all active claims
             panelTitle.setString("All Pending Claims"); panelTitle.setPosition({cx, cy - 20}); cy += 30;
             setupClaimTable(cx, cy, fw); loadPendingClaims();
             break;
-        case ContentPanel::ASSIGN_SURVEYOR:
+        case ContentPanel::ASSIGN_SURVEYOR:  // Manager: assign surveyor to inspect
             panelTitle.setString("Assign Surveyor to Claim"); panelTitle.setPosition({cx, cy - 20}); cy += 30;
             // Show SUBMITTED claims
             dataTable = DataTable(font, {cx, cy}, {fw, 150},
@@ -345,7 +384,7 @@ private:
             addInput("Surveyor Staff ID", "Surveyor ID");
             addBtn("Assign", Theme::PRIMARY, Theme::PRIMARY_HOVER, [this]() { doAssignSurveyor(); });
             break;
-        case ContentPanel::APPROVE_CLAIM:
+        case ContentPanel::APPROVE_CLAIM:  // Manager: approve after reviewing inspection
             panelTitle.setString("Approve Claim"); panelTitle.setPosition({cx, cy - 20}); cy += 30;
             // Show INSPECTED claims with inspection info
             dataTable = DataTable(font, {cx, cy}, {fw, 150},
@@ -372,7 +411,7 @@ private:
             addInput("Claim ID", "Claim ID to approve");
             addBtn("Approve", Theme::SUCCESS, Theme::SUCCESS_HOVER, [this]() { doApproveClaim(); });
             break;
-        case ContentPanel::REJECT_CLAIM:
+        case ContentPanel::REJECT_CLAIM:  // Manager: reject after reviewing inspection
             panelTitle.setString("Reject Claim"); panelTitle.setPosition({cx, cy - 20}); cy += 30;
             // Show INSPECTED claims
             dataTable = DataTable(font, {cx, cy}, {fw, 150},
@@ -399,7 +438,7 @@ private:
             addInput("Claim ID", "Claim ID to reject");
             addBtn("Reject", Theme::DANGER, Theme::DANGER_HOVER, [this]() { doRejectClaim(); });
             break;
-        case ContentPanel::ASSIGN_WORKSHOP:
+        case ContentPanel::ASSIGN_WORKSHOP:  // Manager: send vehicle to repair shop
             panelTitle.setString("Assign Workshop"); panelTitle.setPosition({cx, cy - 20}); cy += 30;
             // Show APPROVED claims
             dataTable = DataTable(font, {cx, cy}, {fw, 130},
@@ -425,14 +464,14 @@ private:
             addInput("Workshop ID", "Workshop ID");
             addBtn("Assign Workshop", Theme::PRIMARY, Theme::PRIMARY_HOVER, [this]() { doAssignWorkshop(); });
             break;
-        case ContentPanel::CUSTOMER_HISTORY:
+        case ContentPanel::CUSTOMER_HISTORY:  // Manager: look up customer's past claims
             panelTitle.setString("Customer Claim History"); panelTitle.setPosition({cx, cy - 20}); cy += 30;
             addInput("Customer ID", "Customer ID");
             addBtn("Search", Theme::PRIMARY, Theme::PRIMARY_HOVER, [this]() { doCustomerHistory(); });
             cy += 10;
             setupClaimTable(cx, cy, fw);
             break;
-        case ContentPanel::REP_NEW_CUST:
+        case ContentPanel::REP_NEW_CUST:  // Manager report: customer acquisition
             panelTitle.setString("Report: New Customers by Month"); panelTitle.setPosition({cx, cy - 20}); cy += 30;
             addInput("Month", "1-12");
             addInput("Year", "e.g. 2026");
@@ -441,11 +480,11 @@ private:
             dataTable = DataTable(font, {cx, cy}, {fw, 300},
                 {"ID", "Name", "Contact", "Address", "Registered"}, {60, 150, 130, 180, 120});
             break;
-        case ContentPanel::REP_PENDING:
+        case ContentPanel::REP_PENDING:  // Manager report: outstanding claims
             panelTitle.setString("Report: Pending Claims"); panelTitle.setPosition({cx, cy - 20}); cy += 30;
             setupClaimTable(cx, cy, fw); loadPendingClaims();
             break;
-        case ContentPanel::REP_INSPECTIONS:
+        case ContentPanel::REP_INSPECTIONS:  // Manager report: all inspections
             panelTitle.setString("Report: Inspection Logs"); panelTitle.setPosition({cx, cy - 20}); cy += 30;
             dataTable = DataTable(font, {cx, cy}, {fw, 400},
                 {"ID", "Claim", "Surveyor", "Date", "Est.Cost", "Recommendation"}, {50, 70, 80, 110, 100, 200});
@@ -458,12 +497,14 @@ private:
         }
     }
 
+    // Helper: set up a standard 7-column claim table at the given position
     void setupClaimTable(float cx, float cy, float fw) {
         dataTable = DataTable(font, {cx, cy}, {fw, 350},
             {"ID", "Policy", "Vehicle", "Accident", "Status", "Surveyor", "Workshop"},
             {50, 60, 65, 100, 130, 75, 80});
     }
 
+    // Helper: populate the claim table with all pending (non-terminal) claims
     void loadPendingClaims() {
         auto cls = claimSvc.getPendingClaims(); std::vector<std::vector<std::string>> rows;
         for (auto& c : cls) rows.push_back({std::to_string(c.claimId), std::to_string(c.policyId),
@@ -472,6 +513,7 @@ private:
         dataTable.setRows(rows);
     }
 
+    // Helper: populate the claim table with claims assigned to the logged-in surveyor
     void loadAssignedClaims() {
         auto cls = claimSvc.getClaimsBySurveyor(loggedInStaff.staffId); std::vector<std::vector<std::string>> rows;
         for (auto& c : cls) rows.push_back({std::to_string(c.claimId), std::to_string(c.policyId),
@@ -481,8 +523,10 @@ private:
     }
 
     // ═══════════════════════════════════════
-    //  ACTIONS
+    //  ACTION HANDLERS — Execute business operations via service layer
+    //  Each method: reads form inputs → calls service → shows toast → refreshes
     // ═══════════════════════════════════════
+    // Register a new customer using form input values
     void doRegisterCustomer() {
         try {
             auto c = customerSvc.registerCustomer(formInputs[0].getValue(), formInputs[1].getValue(), formInputs[2].getValue());
@@ -490,6 +534,7 @@ private:
             for (auto& i : formInputs) i.clear();
         } catch (std::exception& e) { toast.show(e.what(), Theme::DANGER); }
     }
+    // Add a vehicle under a customer with registration details
     void doAddVehicle() {
         try {
             auto v = customerSvc.addVehicle(std::stoi(formInputs[0].getValue()), formInputs[1].getValue(),
@@ -498,6 +543,7 @@ private:
             for (auto& i : formInputs) i.clear();
         } catch (std::exception& e) { toast.show(e.what(), Theme::DANGER); }
     }
+    // Issue a new insurance policy with coverage dates and premium
     void doIssuePolicy() {
         try {
             auto p = customerSvc.createPolicy(std::stoi(formInputs[0].getValue()), std::stoi(formInputs[1].getValue()),
@@ -506,6 +552,7 @@ private:
             for (auto& i : formInputs) i.clear();
         } catch (std::exception& e) { toast.show(e.what(), Theme::DANGER); }
     }
+    // File a damage claim against a policy
     void doFileClaim() {
         try {
             auto c = claimSvc.createClaim(std::stoi(formInputs[0].getValue()), std::stoi(formInputs[1].getValue()),
@@ -514,6 +561,7 @@ private:
             for (auto& i : formInputs) i.clear();
         } catch (std::exception& e) { toast.show(e.what(), Theme::DANGER); }
     }
+    // Submit an inspection report for an assigned claim (surveyor operation)
     void doSubmitInspection() {
         try {
             auto r = claimSvc.addInspectionReport(std::stoi(formInputs[0].getValue()), loggedInStaff.staffId,
@@ -522,6 +570,7 @@ private:
             switchPanel(ContentPanel::SUBMIT_INSPECTION); // refresh table
         } catch (std::exception& e) { toast.show(e.what(), Theme::DANGER); }
     }
+    // Assign a surveyor to inspect a submitted claim (manager operation)
     void doAssignSurveyor() {
         try {
             claimSvc.assignSurveyor(std::stoi(formInputs[0].getValue()), std::stoi(formInputs[1].getValue()));
@@ -529,6 +578,7 @@ private:
             switchPanel(ContentPanel::ASSIGN_SURVEYOR); // refresh table
         } catch (std::exception& e) { toast.show(e.what(), Theme::DANGER); }
     }
+    // Approve an inspected claim (manager operation)
     void doApproveClaim() {
         try {
             claimSvc.approveClaim(std::stoi(formInputs[0].getValue()));
@@ -536,6 +586,7 @@ private:
             switchPanel(ContentPanel::APPROVE_CLAIM); // refresh table
         } catch (std::exception& e) { toast.show(e.what(), Theme::DANGER); }
     }
+    // Reject an inspected claim (manager operation)
     void doRejectClaim() {
         try {
             claimSvc.rejectClaim(std::stoi(formInputs[0].getValue()));
@@ -543,6 +594,7 @@ private:
             switchPanel(ContentPanel::REJECT_CLAIM); // refresh table
         } catch (std::exception& e) { toast.show(e.what(), Theme::DANGER); }
     }
+    // Assign a registered workshop to an approved claim
     void doAssignWorkshop() {
         try {
             claimSvc.assignWorkshop(std::stoi(formInputs[0].getValue()), std::stoi(formInputs[1].getValue()));
@@ -550,6 +602,7 @@ private:
             switchPanel(ContentPanel::ASSIGN_WORKSHOP); // refresh table
         } catch (std::exception& e) { toast.show(e.what(), Theme::DANGER); }
     }
+    // Look up and display claim history for a specific customer
     void doCustomerHistory() {
         try {
             auto cls = reportSvc.getCustomerClaimHistory(std::stoi(formInputs[0].getValue()));
@@ -561,6 +614,7 @@ private:
             toast.show("Found " + std::to_string(rows.size()) + " claims", Theme::PRIMARY);
         } catch (std::exception& e) { toast.show(e.what(), Theme::DANGER); }
     }
+    // Generate report of new customers registered in a specific month/year
     void doReportNewCustomers() {
         try {
             auto custs = reportSvc.getNewCustomersByMonth(std::stoi(formInputs[0].getValue()), std::stoi(formInputs[1].getValue()));
@@ -572,8 +626,9 @@ private:
     }
 
     // ═══════════════════════════════════════
-    //  DASHBOARD EVENTS & DRAW
+    //  DASHBOARD EVENT HANDLING — Delegates to all active widgets
     // ═══════════════════════════════════════
+    // Forward events to all dashboard widgets (buttons, inputs, tables)
     void handleDashboardEvent(const sf::Event& e) {
         logoutBtn.handleEvent(e);
         for (auto& b : navButtons) b.handleEvent(e);
@@ -583,6 +638,7 @@ private:
         secondTable.handleEvent(e);
     }
 
+    // Render the complete dashboard: sidebar, header, content area, and widgets
     void drawDashboard() {
         // Accent bar
         sf::RectangleShape accent({(float)Theme::WIN_W, 3.f});
